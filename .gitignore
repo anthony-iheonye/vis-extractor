@@ -82,7 +82,6 @@ fabric.properties
 
 /app-old.py
 /app/aug_config.py
-/assets
 
 /app/__pycache__
 /app/routes/__pycache__
@@ -92,11 +91,11 @@ requirements_old.txt
 Dockerfile.2
 practice.py
 /Dockerfile.3
-/practice.ipynb
+
 /mean_visual_properties.csv
 morph-and-split-key.json
 morph-and-split-toolset-key.json
 morph-and-split-toolkit-key.json
 
-
-/assets-*
+/assets/
+practice.ipynb
