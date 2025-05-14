@@ -5,6 +5,7 @@ from typing import Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+from app.utils import create_directory
 
 
 class ImageAndMaskDatasetBuilder:
@@ -23,6 +24,7 @@ class ImageAndMaskDatasetBuilder:
                  batch_size: Optional[int] = None,
                  shuffle_buffer_size: Optional[int] = None,
                  prefetch_data: bool = None,
+                 cache_directory: Optional[str] = None,
                  ):
         """
         :param images_directory: str - Directory containing images.
@@ -37,6 +39,8 @@ class ImageAndMaskDatasetBuilder:
         :param batch_size: int or None - Batch size. If None, no batching is applied.
         :param shuffle_buffer_size: int or None - Shuffle buffer size. If None, no shuffling is applied.
         :param prefetch_data: bool - Whether to prefetch data using tf.data.AUTOTUNE.
+        :param cache_directory: str - Path to a directory for caching the dataset to disk. If `None`,
+        caching is skipped. To cache the dataset in memory, set cache_directory to ''.
         """
 
         self.images_directory = images_directory
@@ -135,6 +139,16 @@ class ImageAndMaskDatasetBuilder:
         self.shuffle_buffer_size = shuffle_buffer_size
         self.prefetch_data = prefetch_data
 
+        # Set cache directory
+        if isinstance(cache_directory, str):
+            if cache_directory != '':
+                self.cache_directory = create_directory(dir_name=cache_directory,
+                                                        return_dir=True,
+                                                        overwrite_if_existing=True)
+            else:
+                self.cache_directory = ''
+        else:
+            self.cache_directory = None
 
     @staticmethod
     def sort_filenames(file_paths):
@@ -353,6 +367,9 @@ class ImageAndMaskDatasetBuilder:
     def _get_dataset(self, image_paths, mask_paths):
         dataset = tf.data.Dataset.from_tensor_slices((image_paths, mask_paths))
         dataset = dataset.map(self._read_crop_resize_image_and_mask, num_parallel_calls=self.tune)
+
+        if self.cache_directory is not None:
+            dataset = dataset.cache(filename=self.cache_directory)
 
         if self.shuffle_buffer_size:
             dataset = dataset.shuffle(buffer_size=self.shuffle_buffer_size)
