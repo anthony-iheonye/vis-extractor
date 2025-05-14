@@ -5,14 +5,15 @@ class VisualPropertiesCalibrator:
 
     The color values were extracted from images captured offline, or in real-time during fluidized bed drying """
 
-    def __init__(self, is_realtime_image: bool = True):
+    def __init__(self, realtime_capture_mode: bool = True):
         """
+        Calibrates LAB* color values from camera values to colorimeter values.
 
-        :param is_realtime_image: Set to True, if the color values were extracted from real-time image captured during fluidized bed drying.
+        :param realtime_capture_mode: Set to True, if the color values were extracted from real-time image captured during fluidized bed drying.
         """
-        self.is_realtime_image = is_realtime_image
+        self.realtime_capture_mode = realtime_capture_mode
 
-        if self.is_realtime_image:
+        if self.realtime_capture_mode:
             self.L_index = {'a': -5.04461047576763E+06,
                             'b': 5.13323641056063E+05,
                             'c': 1.15843677123398E+04,
