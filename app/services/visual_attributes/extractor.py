@@ -23,15 +23,13 @@ class VisualPropertiesExtractor:
                  masks_directory: str,
                  image_mask_channels: Tuple[int, int],
 
-                 group_size: int = 1,
-                 group_interval_time: int = 15,
-                 initial_group_interval: int = 0,
-
-                 realtime_capture_mode: bool = True,
-                 convert_size_to_metrics: bool = True,
-                 calibrate_color: bool = False,
                  exclude_partial_objects: bool = False,
                  cache_visual_attributes: bool = False,
+                 calibrator: VisualPropertiesCalibrator = None,
+
+                 image_group_size: int = 1,
+                 interval_per_image_group: int = 15,
+                 initial_group_interval: int = 0,
 
                  save_location: str = None,
                  overwrite_existing_record: bool = True,
@@ -45,15 +43,14 @@ class VisualPropertiesExtractor:
         :param images_directory: (str) Path to the directory where the images are stored.
         :param masks_directory: (str) Path to the directory where the masks are stored.
         :param image_mask_channels: (tuple) A tuple containing the number of image and mask channels (e.g. (3, 1) for rgb image and grayscale mask, or (3, 3) for a rgb image and mask).
-        :param group_size: (int) Number of images captured per group (e.g., per drying interval). Visual attributes are averaged across each group.
-        :param group_interval_time: (int) The time interval (in minutes or seconds) between the capture of each group of images.This value is used to increment the time label assigned to the average visual attributes of each group. For example, if set to 15 and the initial group interval is 0, then groups will be labeled as time = 0, 15, 30, etc.
-        :param initial_group_interval: (int) Starting value of the group interval (e.g., time=0 for the first set). Useful for continuing processing from a specific stage.
-        :param realtime_capture_mode: (bool) If True, the JSON/CSV files are updated in real time as images are processed. Enables streaming writes but increases processing time.
-        :param convert_size_to_metrics: (bool) If True, size measurements like area and perimeter are converted from pixels to metric units using scaling factors (e.g., mm² for area).
-        :param calibrate_color: (bool) If True, calibrates Lab color values from the camera to match those of a physical colorimeter.
         :param exclude_partial_objects: (bool) If True, objects that touch the image border are excluded from computation.
         :param cache_visual_attributes: (bool) If True, enables caching of visual properties during processing. It may improve performance but uses more memory.
-
+        :param calibrator: (VisualPropertiesCalibrator) An instance used to calibrate both color and size measurements. If provided, the extractor converts camera
+        LAB values to match those of a physical colorimeter, and scales size-related features (e.g., area, perimeter) from pixels to metric units using predefined
+        factors (e.g., mm² for area).
+        :param image_group_size: (int) Number of images captured per group (e.g., per drying interval). Visual attributes are averaged across each group.
+        :param interval_per_image_group: (int) The time interval (in minutes or seconds) between the capture of each group of images.This value is used to increment the time label assigned to the average visual attributes of each group. For example, if set to 15 and the initial group interval is 0, then groups will be labeled as time = 0, 15, 30, etc.
+        :param initial_group_interval: (int) Starting value for time labeling of the first group (e.g., time=0 for the first set). Useful for continuing processing from a specific stage.
         :param save_location: (str) Directory where computed visual attributes will be saved in JSON and CSV formats. If None, nothing is saved to disk.
         :param overwrite_existing_record: (bool)  If True, overwrites existing saved visual property files at the `save_location`.
         :param realtime_update: If True, the JSON/CSV files are updated in real time as images are processed.
@@ -76,7 +73,6 @@ class VisualPropertiesExtractor:
 
         self.image_index = start_image_index
         self.tune = tf.data.AUTOTUNE
-        self.exclude_partial_objects = exclude_partial_objects
 
         # The base visual properties for computing shrinkage and color indices. By default, it is set to
         # ('eccentricity', 'equivalent_diameter', 'feret_diameter_max', 'filled_area', 'perimeter',
@@ -90,29 +86,23 @@ class VisualPropertiesExtractor:
         # To compute uniformity, 'ASM' must be included in the list.
         self.texture_properties = ('contrast', 'correlation', 'energy', 'homogeneity', 'ASM')
 
-        # conversion factors for area (mm^2/pixel), equivalent diameter (mm/pixel) and perimeter (mm/pixel),
-        # for image captured in realtime and offline.
-        self.realtime_capture_mode = realtime_capture_mode
-        if self.realtime_capture_mode:
-            self.size_factor = {'area': 0.00312,
-                                'diameter': 0.05583,
-                                'perimeter': 0.05617}
-        else:
-            self.size_factor = {'area': 0.0125519957184444,
-                                'diameter': 0.11203568948529,
-                                'perimeter': 0.112261894371411}
+        # conversion factors for area (mm^2/pixel), equivalent diameter (mm/pixel) and perimeter (mm/pixel)
+        self.size_factor = calibrator.size_factor
 
-        self.group_size = group_size
+        # The number of images that make up a group (for computing average visual attribute)
+        self.image_group_size = image_group_size
 
-        # information that would be used to group the visual properties by drying interval
-        if self.group_size > 1 and group_interval_time:
+        # information that would be used to group the visual properties by interval
+        if self.image_group_size > 1 and interval_per_image_group:
             self.group_images_by_time = tf.constant(True)
-            self.drying_interval = group_interval_time
+            self.capture_interval = interval_per_image_group
             self.current_interval = initial_group_interval
             self.grouped_props_df = None
         else:
             self.current_interval = None
             self.group_images_by_time = tf.constant(False)
+
+        self.exclude_partial_objects = exclude_partial_objects
         self.cache_visual_attributes = cache_visual_attributes
 
         if save_location:
@@ -132,10 +122,17 @@ class VisualPropertiesExtractor:
         self.temp_mean_props_df = None
         self.temp_intensity_image_dict = dict()
 
-        self.calibrate_color = calibrate_color
-        self.compute_actual_size = convert_size_to_metrics
 
-        self.calibrator = VisualPropertiesCalibrator(realtime_capture_mode=True)
+        self.calibrator = calibrator
+
+        if isinstance(calibrator, VisualPropertiesCalibrator):
+            self.calibrate_color = True
+            self.compute_actual_size = True
+        else:
+            self.calibrate_color = False
+            self.compute_actual_size = False
+
+        self._check_for_saved_visual_properties_json_file()
 
     def _produce_regionprops_table(self, rgb_image, mask):
         """
@@ -331,11 +328,14 @@ class VisualPropertiesExtractor:
         self.comprehensive_props_df.to_csv(path_or_buf=self.comprehensive_props_filepath.replace('json', 'csv'))
         self.mean_props_df.to_csv(path_or_buf=self.mean_props_filepath.replace('json', 'csv'))
 
-        # compute the mean per drying interval
+        # Compute the average visual attributes for each group of images captured at a specific time interval
         if self.group_images_by_time:
             time_grp = self.mean_props_df.groupby(by=['time'])
-            time_grp.agg('mean').to_json(path_or_buf=self.grouped_props_filepath)
-            time_grp.agg('mean').to_csv(path_or_buf=self.grouped_props_filepath.replace('json', 'csv'))
+            numeric_columns = self.mean_props_df.select_dtypes(include='number').columns
+
+            self.grouped_props_df = time_grp[numeric_columns].mean()
+            self.grouped_props_df.to_json(path_or_buf=self.grouped_props_filepath)
+            self.grouped_props_df.to_csv(path_or_buf=self.grouped_props_filepath.replace('json', 'csv'))
 
     def _compute_visual_properties_for_single_image_and_mask(self, counter, image_index, rgb_image, mask):
         """Computes the visual properties of object of interest in a rgb image."""
@@ -344,10 +344,10 @@ class VisualPropertiesExtractor:
         if self.compute_actual_size:
             # convert filled_area, perimeter, equivalent diameter and feret_diameter_max for pixel value to actual
             # values
-            temp_props_df['filled_area'] = temp_props_df['filled_area'] * self.size_factor['area']
-            temp_props_df['equivalent_diameter'] = temp_props_df['equivalent_diameter'] * self.size_factor['diameter']
-            temp_props_df['feret_diameter_max'] = temp_props_df['feret_diameter_max'] * self.size_factor['diameter']
-            temp_props_df['perimeter'] = temp_props_df['perimeter'] * self.size_factor['perimeter']
+            temp_props_df['filled_area'] = temp_props_df['filled_area'].apply(self.calibrator.calibrate_filled_area)
+            temp_props_df['equivalent_diameter'] = temp_props_df['equivalent_diameter'].apply(self.calibrator.calibrate_equiv_diameter)
+            temp_props_df['feret_diameter_max'] = temp_props_df['feret_diameter_max'].apply(self.calibrator.calibrate_ferret_dia)
+            temp_props_df['perimeter'] = temp_props_df['perimeter'].apply(self.calibrator.calibrate_perimeter)
 
         # compute and add 'roundness' to the dataframe
         temp_props_df['roundness'] = self._compute_roundness(area=temp_props_df['filled_area'],
@@ -410,8 +410,8 @@ class VisualPropertiesExtractor:
             self._save_dataframe_to_json_and_csv()
 
         if self.group_images_by_time:
-            if counter % self.group_size == 0:
-                self.current_interval += self.drying_interval
+            if counter % self.image_group_size == 0:
+                self.current_interval += self.capture_interval
 
         return counter
 

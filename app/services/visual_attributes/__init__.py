@@ -1,2 +1,2 @@
-from .calibrator import VisualPropertiesCalibrator
-from .attribute_extractor import VisualPropertiesExtractor
+from .calibrator import (realtime_calibrator, offline_calibrator, VisualPropertiesCalibrator)
+from .extractor import VisualPropertiesExtractor
