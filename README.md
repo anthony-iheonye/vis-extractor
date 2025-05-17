@@ -125,13 +125,28 @@ The calibrator receives its configuration through a `CalibrationParameters` obje
 
 ```python
 realtime_parameters = CalibrationParameters(
-    l_index={...},
-    a_index={...},
-    b_index={...},
+    l_index={
+        'a': -5.04461047576763E+06,
+        'b': 5.13323641056063E+05,
+        'c': 1.15843677123398E+04,
+        'd': -7.50471807730221E+01
+    },
+    a_index={
+        'a': -4.37022874993402E+00,
+        'b': 7.66127417312916E-01,
+        'c': 5.72699875489546E-03,
+        'd': -1.01255846619522E-04
+    },
+    b_index={
+        'a': -1.15950594393709E+01,
+        'b': 7.12135024826324E-01,
+        'c': -2.46027845221479E-03,
+        'd': -2.19862222769195E-05
+    },
     size_factor={
-        'area': 0.00312,
-        'diameter': 0.05583,
-        'perimeter': 0.05617
+        'area': 0.00312,       # pixel^2 to mm^2
+        'diameter': 0.05583,   # pixels to mm
+        'perimeter': 0.05617   # pixels to mm
     }
 )
 ```
