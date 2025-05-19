@@ -17,13 +17,16 @@
 
 ## Overview
 
-`VisualPropertiesExtractor` is a comprehensive utility for extracting **size, shape, color, and texture features** from segmented objects in RGB images using their associated masks. Built for image-based machine learning tasks like object tracking, quality inspection, or digital twin modeling, this class enables:
+**VisualPropertiesExtractor** is a comprehensive utility for extracting **size**, **shape**, **color**, and **texture** features from segmented objects in RGB images using their associated masks. Designed for image-based machine learning tasks such as **object tracking**, **quality inspection**, and **digital twin modeling**, it enables:
 
 * Extraction of object-level visual descriptors
 * Group-wise aggregation over time (e.g., drying intervals)
 * Optional calibration of color and size metrics
 
-It integrates tightly with TensorFlow pipelines and supports seamless preprocessing via the companion class `ImageAndMaskDatasetBuilder`.
+It integrates seamlessly with TensorFlow pipelines and works alongside the companion utility 
+<a href="https://github.com/anthony-iheonye/image-mask_dataset_builder">ImageAndMaskDatasetBuilder</a> 
+for efficient preprocessing.
+
 
 ---
 
@@ -89,7 +92,7 @@ VisualPropertiesExtractor(
 ## Arguments
 
 | Argument                    | Type                         | Description                                                                       |
-| --------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+|-----------------------------|------------------------------|-----------------------------------------------------------------------------------|
 | `start_image_index`         | `int`                        | Index of the first image; used for naming outputs like `img_5`, `img_6`, etc.     |
 | `images_directory`          | `str`                        | Directory containing the input RGB images.                                        |
 | `masks_directory`           | `str`                        | Directory containing corresponding masks.                                         |
@@ -104,6 +107,16 @@ VisualPropertiesExtractor(
 | `overwrite_existing_record` | `bool`                       | Whether to overwrite saved files at `save_location`.                              |
 | `realtime_update`           | `bool`                       | If `True`, updates JSON/CSV incrementally as images are processed.                |
 | `image_cache_directory`     | `str`, optional              | Directory for caching image-mask pairs during preprocessing.                      |
+
+---
+## Class Attributes
+| Attribute Name           | Description                                                                                     |
+|--------------------------|-------------------------------------------------------------------------------------------------|
+| `image_mask_dataset`     | A TensorFlow dataset of `(image, mask)` pairs used for processing visual attributes.            |
+| `comprehensive_props_df` | Pandas DataFrame containing object-wise visual properties for all images.                       |
+| `mean_props_df`          | Pandas DataFrame with mean visual properties per image.                                         |
+| `grouped_props_df`       | Pandas DataFrame with group-wise averaged visual properties across time intervals (if enabled). |
+| `capture_interval`       | Time interval between image groups for time-labeled analysis.                                   |
 
 ---
 
@@ -174,13 +187,47 @@ After running `.process_data()`, results are stored as:
 
 ## Practice Examples
 
-Coming soon — Jupyter notebook demo with full workflow:
+Explore a real-world use case in the provided [Jupyter notebook](notebooks/extract_visual_attributes.ipynb):
 
-* Real-time vs. offline calibration
-* Grouping and time-series trend visualization
-* Extracting and inspecting Lab + texture metrics
+### **Exercise: Extract Ground Truth Visual Attributes from Segmented Images**
 
----
+Learn how to use `VisualPropertiesExtractor` to compute calibrated object-level visual features from segmented RGB images of green peas undergoing fluidized bed drying.
+
+The notebook walks you through:
+
+* Real-time and offline image processing
+* Calibration using two domain-specific calibrators - `realtime_calibrator` and `offline_calibrator`
+* Grouping and time-based visual summaries (e.g., 10 images per 15-minute interval)
+* Extracting and previewing:
+
+  * Mean visual attributes per image
+  * Object-level properties
+  * Group-wise aggregated summaries
+
+
+#### Example Snippet:
+```python
+from app.services.visual_attributes import VisualPropertiesExtractor, realtime_calibrator
+
+image_dir = 'assets/realtime/images'
+mask_dir = 'assets/realtime/masks'
+save_dir = 'assets/realtime/visual_attributes'
+
+extractor = VisualPropertiesExtractor(
+    start_image_index=1,
+    images_directory=image_dir,
+    masks_directory=mask_dir,
+    image_mask_channels=(3, 1),
+    calibrator=realtime_calibrator,
+    image_group_size=10,
+    interval_per_image_group=15,
+    save_location=save_dir,
+)
+
+extractor.process_data()
+```
+
+For the full example, visit the [Jupyter notebook](notebooks/extract_visual_attributes.ipynb). 
 
 ## License
 
