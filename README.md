@@ -14,7 +14,7 @@
 * [Author](#author)
 
 ---
-
+![Visual Properties Extractor](assets/vis_extractor.png)
 ## Overview
 
 **VisualPropertiesExtractor** is a comprehensive utility for extracting **size**, **shape**, **color**, and **texture** features from segmented objects in RGB images using their associated masks. Designed for image-based machine learning tasks such as **object tracking**, **quality inspection**, and **digital twin modeling**, it enables:
