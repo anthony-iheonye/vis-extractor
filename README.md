@@ -208,23 +208,31 @@ The notebook walks you through:
 #### Example Snippet:
 ```python
 from app.services.visual_attributes import VisualPropertiesExtractor, realtime_calibrator
+from app.utils import dirs
 
-image_dir = 'assets/realtime/images'
-mask_dir = 'assets/realtime/masks'
-save_dir = 'assets/realtime/visual_attributes'
+# image and masks directories
+image_dir = dirs.realtime_image_dir            # 'assets/realtime/images'
+mask_dir = dirs.realtime_mask_dir              # 'assets/realtime/masks'
 
-extractor = VisualPropertiesExtractor(
+# Location where visual attribute results will be saved.
+save_dir = dirs.realtime_visual_attr_dir       # 'assets/realtime/visual_attributes'
+
+online_extractor = VisualPropertiesExtractor(
     start_image_index=1,
     images_directory=image_dir,
     masks_directory=mask_dir,
     image_mask_channels=(3, 1),
+    exclude_partial_objects=False,
+    cache_visual_attributes=False,
     calibrator=realtime_calibrator,
-    image_group_size=10,
+    image_group_size=3,                       # 3 images per drying interval
     interval_per_image_group=15,
+    initial_group_interval=0,
     save_location=save_dir,
+    overwrite_existing_record=True,
 )
 
-extractor.process_data()
+online_extractor.process_data()
 ```
 
 For the full example, visit the [Jupyter notebook](notebooks/extract_visual_attributes.ipynb). 
