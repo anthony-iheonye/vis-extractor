@@ -9,66 +9,28 @@ base_dir = os.path.abspath(os.path.join(current_dir, '../..'))
 
 @attr.s
 class DirectoryStore:
-    session_id = attr.ib(type=str)
     asset_dir = attr.ib(type=str, init=False)
 
-    image_dir = attr.ib(type=str, init=False)
-    mask_dir = attr.ib(type=str, init=False)
+    realtime_image_dir = attr.ib(type=str, init=False)
+    realtime_mask_dir = attr.ib(type=str, init=False)
+    realtime_visual_attr_dir = attr.ib(type=str, init=False)
 
-    resized_image_dir = attr.ib(type=str, init=False)
-    resized_mask_dir = attr.ib(type=str, init=False)
-
-    augmented = attr.ib(type=str, init=False)
-    train_dir = attr.ib(type=str, init=False)
-    train_image_dir = attr.ib(type=str, init=False)
-    train_mask_dir = attr.ib(type=str, init=False)
-    val_dir = attr.ib(type=str, init=False)
-    val_image_dir = attr.ib(type=str, init=False)
-    val_mask_dir = attr.ib(type=str, init=False)
-    test_dir = attr.ib(type=str, init=False)
-    test_image_dir = attr.ib(type=str, init=False)
-    test_mask_dir = attr.ib(type=str, init=False)
-
-    resized_augmented = attr.ib(type=str, init=False)
-    resized_train_image_dir = attr.ib(type=str, init=False)
-    resized_train_mask_dir = attr.ib(type=str, init=False)
-    resized_val_image_dir = attr.ib(type=str, init=False)
-    resized_val_mask_dir = attr.ib(type=str, init=False)
-    resized_test_image_dir = attr.ib(type=str, init=False)
-    resized_test_mask_dir = attr.ib(type=str, init=False)
-
-    stratification_data_file_dir = attr.ib(type=str, init=False)
+    offline_image_dir = attr.ib(type=str, init=False)
+    offline_mask_dir = attr.ib(type=str, init=False)
+    offline_visual_attr_dir = attr.ib(type=str, init=False)
 
     def __attrs_post_init__(self):
         # Set the paths that depend on other attributes
-        self.asset_dir = os.path.join(base_dir, f"assets-{self.session_id}")
-        self.image_dir = os.path.join(self.asset_dir, 'images')
-        self.mask_dir = os.path.join(self.asset_dir, 'masks')
+        self.asset_dir = os.path.join(base_dir, 'assets')
+        self.realtime_image_dir = os.path.join(self.asset_dir, 'realtime', 'images')
+        self.realtime_mask_dir = os.path.join(self.asset_dir, 'realtime', 'masks')
+        self.realtime_visual_attr_dir = os.path.join(self.asset_dir, 'realtime', 'visual_attributes')
 
-        self.resized_image_dir = os.path.join(self.asset_dir, 'resized_images')
-        self.resized_mask_dir = os.path.join(self.asset_dir, 'resized_masks')
+        self.offline_image_dir = os.path.join(self.asset_dir, 'offline', 'images')
+        self.offline_mask_dir = os.path.join(self.asset_dir, 'offline', 'masks')
+        self.offline_visual_attr_dir = os.path.join(self.asset_dir, 'offline', 'visual_attributes')
 
-        self.augmented = os.path.join(self.asset_dir, 'augmented')
-        self.train_dir = os.path.join(self.augmented, 'train')
-        self.train_image_dir = os.path.join(self.train_dir, 'images')
-        self.train_mask_dir = os.path.join(self.train_dir, 'masks')
-        self.val_dir = os.path.join(self.augmented, 'val')
-        self.val_image_dir = os.path.join(self.val_dir, 'images')
-        self.val_mask_dir = os.path.join(self.val_dir, 'masks')
-        self.test_dir = os.path.join(self.augmented, 'test')
-        self.test_image_dir = os.path.join(self.test_dir, 'images')
-        self.test_mask_dir = os.path.join(self.test_dir, 'masks')
-
-        self.resized_augmented = os.path.join(self.asset_dir, 'resized_augmented')
-        self.resized_train_image_dir = os.path.join(self.resized_augmented, 'train', 'images')
-        self.resized_train_mask_dir = os.path.join(self.resized_augmented, 'train', 'masks')
-        self.resized_val_image_dir = os.path.join(self.resized_augmented, 'val', 'images')
-        self.resized_val_mask_dir = os.path.join(self.resized_augmented, 'val', 'masks')
-        self.resized_test_image_dir = os.path.join(self.resized_augmented, 'test', 'images')
-        self.resized_test_mask_dir = os.path.join(self.resized_augmented, 'test', 'masks')
-
-        self.stratification_data_file_dir = os.path.join(self.asset_dir, 'stratification')
-
+dirs = DirectoryStore()
 
 def create_directory(dir_name, return_dir=False, overwrite_if_existing=False):
     """

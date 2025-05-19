@@ -3,7 +3,8 @@ from .directory_file_management import (create_directory,
                                         current_directory,
                                         list_filenames,
                                         directory_exit,
-                                        delete_file)
+                                        delete_file,
+                                        dirs)
 
 from .directory_file_management import (create_project_directories,
                                         get_sorted_filepaths,
