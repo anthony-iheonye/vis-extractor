@@ -93,7 +93,8 @@ class VisualPropertiesExtractor:
         self.image_group_size = image_group_size
 
         # information that would be used to group the visual properties by interval
-        if self.image_group_size > 1 and interval_per_image_group:
+        # if self.image_group_size > 1 and interval_per_image_group:
+        if interval_per_image_group:
             self.group_images_by_time = tf.constant(True)
             self.capture_interval = interval_per_image_group
             self.current_interval = initial_group_interval
@@ -400,8 +401,8 @@ class VisualPropertiesExtractor:
         # Append the mean and comprehensive properties to their main counterparts
         # self.temp_comprehensive_props_df.append(other=temp_props_df, ignore_index=True)
         # self.temp_mean_props_df.append(other=temp_mean_props_df, ignore_index=True)
-        self.temp_comprehensive_props_df = temp_props_df.copy(deep=True)
-        self.temp_mean_props_df = temp_mean_props_df.copy(deep=True)
+        self.temp_comprehensive_props_df = temp_props_df
+        self.temp_mean_props_df = temp_mean_props_df
 
         # update the parent dataframes (comprehensive_props_df and mean_props_df)
         self._update_parent_dataframes()
